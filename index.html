@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="zh-Hant"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>放置冒險 - 第一版</title>
+<style>body{font-family:system-ui,sans-serif;background:#eef3f7;color:#203047;max-width:680px;margin:25px auto;padding:12px}main{background:white;border-radius:16px;padding:22px;box-shadow:0 4px 18px #0001}button{background:#2466bd;color:white;border:0;border-radius:9px;padding:12px 20px;cursor:pointer}button:disabled{opacity:.5}.bar{height:14px;background:#ddd;border-radius:10px;overflow:hidden}.fill{height:100%;background:#42a56b;width:100%}#expbar{background:#528cde}#log{height:170px;overflow:auto;background:#f5f7fa;border-radius:8px;padding:10px;line-height:1.7}h1{font-size:24px}small{color:#617084}</style></head>
+<body><main><h1>🌿 放置冒險</h1><p><strong id="hero">初心者 Lv. 1</strong>　💰 <span id="gold">0</span> Zeny</p><p>HP：<span id="hp">100 / 100</span></p><div class="bar"><div class="fill" id="hpbar"></div></div><p>經驗值：<span id="exp">0 / 30</span></p><div class="bar"><div class="fill" id="expbar" style="width:0%"></div></div><hr><p>🗺️ 初心者草原</p><p>目前怪物：<strong id="monster">草原史萊姆</strong>　HP：<span id="mhp">30 / 30</span></p><p><button id="toggle">開始自動戰鬥</button> <button id="reset">重置存檔</button></p><h3>戰鬥紀錄</h3><div id="log" aria-live="polite"></div><p><small>每秒攻擊一次；自動存檔於本機瀏覽器。此版本沒有離線收益。</small></p></main>
+<script>
+const KEY='idle_adventure_v1';
+const initial=()=>({level:1,exp:0,gold:0,hp:100,monsterHp:30,kills:0});
+let state;try{state={...initial(),...JSON.parse(localStorage.getItem(KEY)||'{}')}}catch{state=initial()}
+let fighting=false;
+const $=id=>document.getElementById(id);
+const maxHp=()=>100+(state.level-1)*10;
+const expNeed=()=>state.level*30;
+function log(message){const line=document.createElement('div');line.textContent=message;$('log').prepend(line);while($('log').children.length>60)$('log').lastChild.remove()}
+function save(){localStorage.setItem(KEY,JSON.stringify(state))}
+function render(){state.hp=Math.min(state.hp,maxHp());$('hero').textContent=`初心者 Lv. ${state.level}`;$('gold').textContent=state.gold;$('hp').textContent=`${state.hp} / ${maxHp()}`;$('hpbar').style.width=`${100*state.hp/maxHp()}%`;$('exp').textContent=`${state.exp} / ${expNeed()}`;$('expbar').style.width=`${100*state.exp/expNeed()}%`;$('mhp').textContent=`${state.monsterHp} / 30`;$('toggle').textContent=fighting?'停止自動戰鬥':'開始自動戰鬥'}
+function tick(){if(!fighting)return;const damage=10+state.level*2;state.monsterHp=Math.max(0,state.monsterHp-damage);log(`你造成 ${damage} 點傷害`);if(state.monsterHp===0){state.kills++;state.gold+=5;state.exp+=10;log('擊敗草原史萊姆！獲得 10 EXP、5 Zeny');while(state.exp>=expNeed()){state.exp-=expNeed();state.level++;state.hp=maxHp();log(`🎉 升級！目前 Lv. ${state.level}`)}state.monsterHp=30}save();render()}
+$('toggle').onclick=()=>{fighting=!fighting;log(fighting?'開始自動戰鬥':'停止自動戰鬥');render()};
+$('reset').onclick=()=>{if(!confirm('確定清除目前角色進度？'))return;state=initial();fighting=false;save();$('log').replaceChildren();render()};
+setInterval(tick,1000);render();
+</script></body></html>
